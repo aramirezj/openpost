@@ -2166,6 +2166,9 @@ func firstNonEmptyCapability(values ...string) string {
 	return ""
 }
 
+// validateUnsupportedSettings flags provider settings that are not in the
+// capability catalog. Authored mentions are owned by posttext rather than that
+// catalog, so the mentions key is skipped even when spans are explicitly empty.
 func validateUnsupportedSettings(capability Capability, settings map[string]any) []ValidationIssue {
 	if len(settings) == 0 {
 		return nil
@@ -2177,8 +2180,6 @@ func validateUnsupportedSettings(capability Capability, settings map[string]any)
 	issues := []ValidationIssue{}
 	for key, value := range settings {
 		key = strings.TrimSpace(key)
-		// Mentions are authored through posttext, not the provider setting catalog.
-		// Empty spans still serialize as an object, so they must not trip this gate.
 		if key == "" || key == "attachment_requirement" || key == "mentions" {
 			continue
 		}
@@ -2203,6 +2204,9 @@ func validateUnsupportedSettings(capability Capability, settings map[string]any)
 	return issues
 }
 
+// legacySettingSupported reports whether a retained historical setting key is
+// still accepted for the provider profile even when it is absent from the
+// current capability catalog.
 func legacySettingSupported(provider, profile, key string) bool {
 	switch provider {
 	case ProviderX:

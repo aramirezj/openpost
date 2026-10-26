@@ -784,6 +784,8 @@ func TestValidateFlagsUnsupportedProviderSettings(t *testing.T) {
 	requireIssueCode(t, issues, "unsupported_setting")
 }
 
+// TestValidateOutputAcceptsAuthoredMentionsOutsideProviderCatalog ensures
+// cleared and selected mention metadata do not fail as unsupported settings.
 func TestValidateOutputAcceptsAuthoredMentionsOutsideProviderCatalog(t *testing.T) {
 	t.Parallel()
 
@@ -927,6 +929,7 @@ func requireIssueForField(t *testing.T, issues []ValidationIssue, code, field st
 	require.Failf(t, "missing validation issue", "code %q for field %q not found in %#v", code, field, issues)
 }
 
+// requireNoIssueCode fails the test when any validation issue uses the given code.
 func requireNoIssueCode(t *testing.T, issues []ValidationIssue, code string) {
 	t.Helper()
 	for _, issue := range issues {
