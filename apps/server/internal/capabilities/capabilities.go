@@ -2177,7 +2177,9 @@ func validateUnsupportedSettings(capability Capability, settings map[string]any)
 	issues := []ValidationIssue{}
 	for key, value := range settings {
 		key = strings.TrimSpace(key)
-		if key == "" || key == "attachment_requirement" {
+		// Mentions are authored through posttext, not the provider setting catalog.
+		// Empty spans still serialize as an object, so they must not trip this gate.
+		if key == "" || key == "attachment_requirement" || key == "mentions" {
 			continue
 		}
 		if _, ok := known[key]; ok {

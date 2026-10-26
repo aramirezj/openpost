@@ -784,6 +784,43 @@ func TestValidateFlagsUnsupportedProviderSettings(t *testing.T) {
 	requireIssueCode(t, issues, "unsupported_setting")
 }
 
+func TestValidateOutputAcceptsAuthoredMentionsOutsideProviderCatalog(t *testing.T) {
+	t.Parallel()
+
+	emptyMentions := map[string]any{"version": 1, "spans": []any{}}
+	selectedMentions := map[string]any{
+		"version": 1,
+		"spans": []any{map[string]any{
+			"start": 8, "end": 14, "text": "@alice",
+			"target": map[string]any{"provider": "bluesky", "kind": "person", "id": "did:plc:ewvi7nxzyoun6zhxrhs64oiz", "handle": "alice.bsky.social"},
+		}},
+	}
+	for _, test := range []struct {
+		name     string
+		provider string
+		output   string
+		profile  string
+		body     string
+		settings map[string]any
+	}{
+		{
+			name: "bluesky thread cleared mentions", provider: ProviderBluesky, output: "bluesky.thread",
+			profile: models.ContentProfileThread, body: "Thanks for the idea!",
+			settings: map[string]any{"thread_gate": "everyone", "mentions": emptyMentions},
+		},
+		{
+			name: "bluesky post selected mentions", provider: ProviderBluesky, output: "bluesky.post",
+			profile: models.ContentProfileShortText, body: "🚀 Hi @alice",
+			settings: map[string]any{"mentions": selectedMentions},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			issues := ValidateOutput(test.provider, test.output, test.profile, test.body, "", "", nil, test.settings)
+			requireNoIssueCode(t, issues, "unsupported_setting")
+		})
+	}
+}
+
 func TestValidateRequiresExplicitConsentWithoutGenericQuotaWarnings(t *testing.T) {
 	tiktokIssues := Validate(ProviderTikTok, models.ContentProfileShortVideo, "caption", "", "", []MediaItem{{
 		ID:              "video-1",
