@@ -1,3 +1,3 @@
 ### Fixed
 
-- Bluesky threads no longer fail validation with "mentions is not supported" after clearing selected mentions. Authored mention metadata (including an explicit empty spans list) is owned by mention validation, not the provider settings catalog.
+- Posts and threads no longer reject authored mention metadata as an unsupported provider setting, including after clearing selected mentions. This fixes Bluesky, Mastodon, LinkedIn, and other destinations carrying empty mention metadata. Selected mentions still require a matching network and account authority.

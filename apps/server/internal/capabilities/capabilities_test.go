@@ -784,40 +784,36 @@ func TestValidateFlagsUnsupportedProviderSettings(t *testing.T) {
 	requireIssueCode(t, issues, "unsupported_setting")
 }
 
-// TestValidateOutputAcceptsAuthoredMentionsOutsideProviderCatalog ensures
-// cleared and selected mention metadata do not fail as unsupported settings.
+// TestValidateOutputAcceptsAuthoredMentionsOutsideProviderCatalog guards the
+// shared authored-metadata boundary for every provider and output format.
 func TestValidateOutputAcceptsAuthoredMentionsOutsideProviderCatalog(t *testing.T) {
 	t.Parallel()
 
-	emptyMentions := map[string]any{"version": 1, "spans": []any{}}
-	selectedMentions := map[string]any{
-		"version": 1,
-		"spans": []any{map[string]any{
-			"start": 8, "end": 14, "text": "@alice",
-			"target": map[string]any{"provider": "bluesky", "kind": "person", "id": "did:plc:ewvi7nxzyoun6zhxrhs64oiz", "handle": "alice.bsky.social"},
-		}},
+	for _, capability := range All() {
+		t.Run(capability.Provider+"/"+capability.Profile+"/cleared", func(t *testing.T) {
+			issues := ValidateOutput(capability.Provider, capability.OutputProfile, capability.Profile,
+				"Thanks for the idea!", "A title", "", nil,
+				map[string]any{"mentions": map[string]any{"version": 1, "spans": []any{}}})
+			for _, issue := range issues {
+				require.False(t, issue.Code == "unsupported_setting" && issue.Field == "mentions", issue.Message)
+			}
+		})
 	}
 	for _, test := range []struct {
-		name     string
 		provider string
-		output   string
-		profile  string
-		body     string
-		settings map[string]any
+		target   map[string]any
 	}{
-		{
-			name: "bluesky thread cleared mentions", provider: ProviderBluesky, output: "bluesky.thread",
-			profile: models.ContentProfileThread, body: "Thanks for the idea!",
-			settings: map[string]any{"thread_gate": "everyone", "mentions": emptyMentions},
-		},
-		{
-			name: "bluesky post selected mentions", provider: ProviderBluesky, output: "bluesky.post",
-			profile: models.ContentProfileShortText, body: "🚀 Hi @alice",
-			settings: map[string]any{"mentions": selectedMentions},
-		},
+		{ProviderBluesky, map[string]any{"provider": "bluesky", "kind": "person", "id": "did:plc:ewvi7nxzyoun6zhxrhs64oiz"}},
+		{ProviderMastodon, map[string]any{"provider": "mastodon", "kind": "person", "id": "123", "handle": "alice", "authority": "https://mastodon.social"}},
+		{ProviderLinkedIn, map[string]any{"provider": "linkedin", "kind": "page", "id": "urn:li:organization:123"}},
 	} {
-		t.Run(test.name, func(t *testing.T) {
-			issues := ValidateOutput(test.provider, test.output, test.profile, test.body, "", "", nil, test.settings)
+		t.Run(test.provider+"/selected", func(t *testing.T) {
+			settings := map[string]any{"mentions": map[string]any{
+				"version": 1,
+				"spans":   []any{map[string]any{"start": 8, "end": 14, "text": "@alice", "target": test.target}},
+			}}
+			issues := ValidateOutput(test.provider, test.provider+".post", models.ContentProfileShortText,
+				"🚀 Hi @alice", "", "", nil, settings)
 			requireNoIssueCode(t, issues, "unsupported_setting")
 		})
 	}
